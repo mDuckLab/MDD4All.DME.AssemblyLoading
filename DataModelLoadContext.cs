@@ -39,6 +39,24 @@ namespace MDD4All.DME.AssemblyLoading
         {
             Assembly? result = null;
 
+            // A type has to mean the same thing on both sides of this boundary. A data model
+            // brings its own copy of System.ComponentModel.Annotations along, and the resolver
+            // finds it - loading it here would put DisplayAttribute in the process twice, same
+            // name, same shape, different types. Every "is DisplayAttribute" in the editor then
+            // fails silently, which is why annotated labels never showed up.
+            //
+            // Returning null says "not mine" and lets the runtime take the host's copy.
+            try
+            {
+                Default.LoadFromAssemblyName(assemblyName);
+
+                return null;
+            }
+            catch (FileNotFoundException)
+            {
+                // The host does not have it, so it has to come from next to the model.
+            }
+
             string? assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
             if (assemblyPath != null)
             {
