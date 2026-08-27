@@ -39,22 +39,21 @@ namespace MDD4All.DME.AssemblyLoading
         {
             Assembly? result = null;
 
-            // A type has to mean the same thing on both sides of this boundary. A data model
-            // brings its own copy of System.ComponentModel.Annotations along, and the resolver
-            // finds it - loading it here would put DisplayAttribute in the process twice, same
-            // name, same shape, different types. Every "is DisplayAttribute" in the editor then
-            // fails silently, which is why annotated labels never showed up.
+            // Only the framework is shared with the host, and it has to be: a data model brings
+            // its own System.ComponentModel.Annotations along, and a second copy would put
+            // DisplayAttribute in the process twice - same name, same shape, two types that never
+            // compare equal. Returning null says "not mine" and hands the request to the host.
             //
-            // Returning null says "not mine" and lets the runtime take the host's copy.
-            try
+            // Everything else has to come from next to the model, even when the host happens to
+            // carry an assembly of the same name. The data models are exactly that case: the
+            // application references its own, and letting the host answer for them would leave
+            // the type in a file's $type incompatible with the type the caller resolved.
+            //
+            // Asking the host whether it *could* supply an assembly is not the same question -
+            // it can supply plenty that it must not.
+            if (IsSharedFramework(assemblyName))
             {
-                Default.LoadFromAssemblyName(assemblyName);
-
                 return null;
-            }
-            catch (FileNotFoundException)
-            {
-                // The host does not have it, so it has to come from next to the model.
             }
 
             string? assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
@@ -84,6 +83,27 @@ namespace MDD4All.DME.AssemblyLoading
 
             return result;
 
+        }
+
+        // Names rather than a probe, because the question is not what the host has but what it
+        // owns. These prefixes are the shared framework; nothing an application or a data model
+        // ships is called that.
+        private bool IsSharedFramework(AssemblyName assemblyName)
+        {
+            bool result = false;
+
+            string? name = assemblyName.Name;
+
+            if (name != null)
+            {
+                result = name.StartsWith("System.", StringComparison.Ordinal)
+                         || name.StartsWith("Microsoft.", StringComparison.Ordinal)
+                         || name == "System"
+                         || name == "netstandard"
+                         || name == "mscorlib";
+            }
+
+            return result;
         }
 
         protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
