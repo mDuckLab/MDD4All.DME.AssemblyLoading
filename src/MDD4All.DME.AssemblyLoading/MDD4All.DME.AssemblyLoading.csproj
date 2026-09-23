@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\MDD4All.AssemblyLoading.Contracts\src\MDD4All.AssemblyLoading.Contracts\MDD4All.AssemblyLoading.Contracts-dev.csproj" />
+      <ProjectReference Include="..\..\..\MDD4All.AssemblyLoading.Contracts\src\MDD4All.AssemblyLoading.Contracts\MDD4All.AssemblyLoading.Contracts-dev.csproj" />
     </ItemGroup>
 
 </Project>
